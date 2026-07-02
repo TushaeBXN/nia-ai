@@ -1,0 +1,13 @@
+# PDF processing
+pymupdf>=1.24.0
+
+# Training (RunPod / Colab)
+torch>=2.2.0
+transformers==4.40.0
+peft>=0.10.0
+datasets>=2.18.0
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+
+# Local inference
+# ollama (install separately: https://ollama.com)

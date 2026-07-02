@@ -1,0 +1,30 @@
+# Training data — too large for git, keep locally
+training_data/*.jsonl
+training_data/*.txt
+
+# Keep the build state so resume works after cloning
+!training_data/nia_build_state.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+.env
+
+# macOS
+.DS_Store
+
+# Checkpoints
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Logs
+*.log
+wandb/
+runs/
