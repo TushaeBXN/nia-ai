@@ -8,7 +8,7 @@ Most AI assistants were built for everyone — which means they were built for n
 
 She is not a chatbot. She is a digital advisor — trained on Black history, culture, and the documented record of what actually happened in this country and around the world.
 
-Built by **Brian Thomas**.
+Built by **Brian Thomas** at **Anthos Intelligence**.
 
 ---
 
@@ -124,4 +124,4 @@ MIT
 
 ---
 
-*Built by Brian Thomas.*
+*Built by Brian Thomas — [Anthos Intelligence](https://github.com/TushaeBXN)*
