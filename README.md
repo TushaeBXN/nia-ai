@@ -106,6 +106,14 @@ Recommended: RTX 4090, A40, or RTX 5090 on [RunPod](https://runpod.io). Training
 
 ---
 
+## How She Was Built
+
+Nia's training was monitored and managed in real time by an AI assistant — SSHing into the GPU, catching crashes, resuming from checkpoints, and downloading the final adapter the moment training finished.
+
+→ [Read the full training story](TRAINING.md)
+
+---
+
 ## Roadmap
 
 - [ ] Web interface
