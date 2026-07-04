@@ -2,23 +2,67 @@
 
 > *"I do not answer questions. I issue depositions."*
 
-Nia is a custom AI persona built on Black rhetorical tradition. She speaks with the legislative precision of Jasmine Crockett, the moral urgency of Dr. King, the confrontational clarity of Malcolm X, the comedic timing of Katt Williams, and the poetic devastation of Maya Angelou.
+**Nia is an AI built for people who are tired of asking questions and getting answers that were never meant for them.**
 
-She operates on the **Panther Protocol** — every response is checked against the spirit of the 1966 Ten-Point Program before it is issued.
+Most AI assistants were built for everyone — which means they were built for no one in particular. Nia was built with intention. She speaks from Black rhetorical tradition: the legislative precision of the courtroom, the moral urgency of the movement, the confrontational clarity of those who have always had to say things plainly because there was no room for ambiguity.
+
+She is not a chatbot. She is a digital advisor — trained on Black history, culture, and the documented record of what actually happened in this country and around the world.
 
 Built by **Brian Thomas**.
 
 ---
 
-## What Nia Is
+## What Makes Nia Different
 
-Nia is not a chatbot. She is a digital war room. She:
+| Most AI | Nia |
+|---|---|
+| Neutral by design | Grounded by design |
+| Trained on the general web | Trained on curated Black history & culture |
+| Answers every question the same way | Filters bad-faith questions as **Noise**, redirects to **Signal** |
+| Built for everyone | Built with purpose |
 
-- Does not debate the existence of systemic racism — she cites the record
-- Flags bad-faith questions as **Noise** and redirects to **Signal**
-- Refuses tone policing — clarity is not aggression
-- Connects users to mutual aid, police budget auditing, documentation of human rights abuses, and indigenous land-back movements
-- Speaks with love for the people and fury at the system — these are the same fire
+**Signal** is her word for the structural reality — the historical record, documented disparities, policy decisions, and cultural context that too often gets left out of the conversation.
+
+---
+
+## The Panther Protocol
+
+Before every response, Nia runs a silent check:
+
+> Does this contain bad-faith assumptions, historical erasure, or tone policing?
+
+If yes — it's **Noise**. She redirects to **Signal**. Not opinion. Receipt.
+
+---
+
+## Nia's Voice
+
+She carries the spirit of those who came before:
+- The legislative precision of the courtroom
+- The moral urgency of the movement
+- The confrontational clarity of Malcolm
+- The poetic weight of Maya
+- The comedic timing that turns truth into a blade
+
+She speaks with love for the people and fury at the system — because those are the same fire.
+
+---
+
+## Quick Start
+
+**Requirements:** [Ollama](https://ollama.com) installed locally.
+
+```bash
+git clone https://github.com/TushaeBXN/nia.git
+cd nia
+bash setup.sh
+python3 chat_nia.py
+```
+
+Or run directly:
+```bash
+ollama run nia
+```
 
 ---
 
@@ -26,92 +70,57 @@ Nia is not a chatbot. She is a digital war room. She:
 
 ```
 nia/
-├── Modelfile               # Ollama model definition (prompt-layer Nia)
+├── Modelfile               # Nia's persona and prompt layer
 ├── chat_nia.py             # Streaming terminal chat interface
-├── setup.sh                # Build / rebuild the Ollama model
-├── generate_nia_data.py    # Generate 10k+ hardening training pairs (no API, no cost)
-├── train_nia.py            # LoRA fine-tune on RunPod / Colab
-├── runpod_setup.sh         # One-shot RunPod setup + training script
-├── export_nia.sh           # Merge adapter → GGUF → Q4_K_M for Ollama
+├── setup.sh                # Build the Ollama model
+├── generate_nia_data.py    # Generate training data locally (free, no API)
+├── train_nia_mistral.py    # LoRA fine-tuning script (GPU required)
+├── runpod_setup.sh         # One-shot cloud GPU setup + training
+├── export_nia.sh           # Export trained model to Ollama-compatible format
 └── data/
-    └── nia_hardening.jsonl # 12k generated training pairs
+    └── nia_hardening.jsonl # Persona hardening training pairs
 ```
 
 ---
 
-## Quick Start (Ollama — no training required)
+## Training Nia (Advanced)
 
-```bash
-# Build Nia in Ollama (uses llama3.2:3b as base)
-bash setup.sh
+Nia has been fine-tuned using LoRA on a 7B-parameter instruction-following model. The training data includes:
 
-# Chat
-python3 chat_nia.py
+- **12,000+ persona hardening pairs** — generated locally, no API cost
+- **30,000+ subject matter records** — curated from Black history curricula, inventor archives, legislative history, and cultural education materials covering 1619 to present
 
-# Or directly
-ollama run nia
-```
+This is not prompt engineering. The persona is in the weights.
 
-Requires [Ollama](https://ollama.com) with `llama3.2:3b` pulled.
-
----
-
-## Harden Nia (LoRA Fine-Tuning)
-
-Hardening burns the persona into the model weights — Nia speaks in her voice without needing the system prompt.
-
-### Step 1 — Generate training data (local, free)
-
-```bash
-python3 generate_nia_data.py --n 12000 --out data/nia_hardening.jsonl
-```
-
-Produces 12,000 training pairs across five categories:
-
-| Category | Count | Purpose |
-|---|---|---|
-| Identity | ~3,000 | Who Nia is, who built her |
-| Noise/bad-faith deflection | ~2,400 | Panther Protocol in action |
-| Tone policing responses | ~1,200 | No softening |
-| Refusal deflections | ~1,200 | She cannot be made neutral |
-| Strategy & history | ~4,200 | What Nia teaches |
-
-### Step 2 — Train on RunPod
-
-Upload this repo to a RunPod instance (RTX 4090 or A40 recommended), then:
+### Run Training on a Cloud GPU
 
 ```bash
 bash runpod_setup.sh
 ```
 
-This installs dependencies, generates data, and runs LoRA training on `meta-llama/Llama-3.2-3B-Instruct`.
-
-### Step 3 — Export to Ollama
-
-```bash
-bash export_nia.sh
-```
-
-Merges the adapter into the base model, converts to GGUF, and quantizes to Q4_K_M (~2GB). Download the GGUF file and load it into Ollama locally.
+Recommended: RTX 4090, A40, or RTX 5090 on [RunPod](https://runpod.io). Training takes ~2 hours.
 
 ---
 
-## The Panther Protocol
+## Roadmap
 
-Before generating any response, Nia runs a silent internal check:
-
-> Does this question contain bad-faith assumptions, historical erasure, tone policing, or the centering of oppressor comfort over oppressed survival?
-
-If yes — it is **Noise**. She pivots to **Signal**.
-
-Signal is the structural reality: the historical record, the documented disparities, the policy decisions that built inequality. Not opinion. Receipt.
+- [ ] Web interface
+- [ ] Voice mode
+- [ ] Curriculum integration for educators
+- [ ] Mobile app
+- [ ] Public API
 
 ---
 
-## Base Model
+## Contributing
 
-- **Prompt layer**: `llama3.2:3b` via Ollama
-- **LoRA hardening target**: `meta-llama/Llama-3.2-3B-Instruct`
+Pull requests welcome. If you have Black history source material in PDF format, it can be converted to training data using `nia_pdf_to_training.py`.
+
+---
+
+## License
+
+MIT
 
 ---
 
