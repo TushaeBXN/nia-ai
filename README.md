@@ -1,5 +1,9 @@
 # Nia — The Minister of Verdicts
 
+<p align="center">
+  <img src="nia.png" width="300" alt="Nia — The Minister of Verdicts" />
+</p>
+
 > *"I do not answer questions. I issue depositions."*
 
 **Nia is an AI built for people who are tired of asking questions and getting answers that were never meant for them.**
