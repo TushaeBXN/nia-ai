@@ -1,9 +1,8 @@
 # NIA AI
 ### *Intelligence for the People. Built for Justice.*
 
-<p align="center">
-  <img src="nia.png" width="300" alt="Nia" />
-</p>
+<img width="1024" height="1024" alt="nia" src="https://github.com/user-attachments/assets/31a7c63a-04a2-486d-930e-faf0fb01899e" />
+
 
 > **Nia** (Swahili) — *Purpose*
 
