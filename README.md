@@ -19,13 +19,13 @@ Built by **Brian Thomas** at **Anthos Intelligence**.
 
 In the United States today:
 
-- Black mothers experience significantly higher rates of complications during childbirth than their peers — a gap that persists across income levels
+- Across healthcare, housing, and hiring, people of color are more likely to be turned away, charged more, or given less — and rarely have the tools to document or push back
 - Workplace and housing protections that took decades to build are being quietly rolled back
 - Families across this country are being separated by policies that move faster than anyone can respond to
-- The wealth gap between Black and white Americans has barely moved in over fifty years — and in some measures has grown
+- The wealth gap in America is real and growing — not just between Black and white families, but for millions of working-class people of all backgrounds living at or below the poverty line. Many don't realize the gains of the civil rights movement — minimum wage protections, fair housing, workplace rights — were wins for all working people, not just one community
 - Millions of people are navigating healthcare denials, housing disputes, and job losses every day with no idea what options they have
 
-The information that could change outcomes exists. But it sits behind paywalls, jargon, and systems built to be hard to reach. **Nia closes that gap.**
+The information that could change outcomes exists. But it sits behind paywalls, jargon, and systems built to be hard to reach. **Nia can talk about those gaps.**
 
 ---
 
