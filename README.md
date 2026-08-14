@@ -149,18 +149,10 @@ fine-tuned into a 7B model with 12,000+ persona-hardening pairs and
 
 ---
 
-## STATUS
-
-🟡 **Active Development — Phase 1 (Core Agent)** — see [STATUS.md](STATUS.md)
-
-⚠️ The know-your-rights content has **not yet been reviewed by legal professionals** and resource listings need re-verification — required before any public deployment. If you're a lawyer or legal aid worker who can review: please open an issue.
-
----
-
 ## BUILT BY
 
 **Brian Thomas (Tushae)**
-Founder, Anthos Intelligence Company · Director, Aim Higher in Education (AHIE) · Charlotte, NC
+Founder, Anthos Intelligence Company
 
 ---
 
