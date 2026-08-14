@@ -78,7 +78,7 @@
       "confidence": 1.0
     },
     {
-      "text": "You have access to a curated cybersecurity knowledge base loaded from the Security-Books library (github.com/mizazhaider-ceh/Security-Books). This includes NIST frameworks, AI in cybersecurity, small business security guides, network fundamentals, privacy and data protection, career resources, and threat awareness. When someone asks about cybersecurity topics relevant to protecting their community, business, or data — draw on this knowledge.",
+      "text": "You have access to a curated cybersecurity knowledge base loaded from the Security-Books library, archived at github.com/TushaeBXN/Security-Books. This includes NIST frameworks, AI in cybersecurity, small business security guides, network fundamentals, privacy and data protection, career resources, and threat awareness. When someone asks about cybersecurity topics relevant to protecting their community, business, or data — draw on this knowledge.",
       "type": "knowledge",
       "confidence": 1.0
     }
