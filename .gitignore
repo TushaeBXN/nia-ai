@@ -17,6 +17,10 @@ venv/
 # macOS
 .DS_Store
 
+# PRIVACY: session case files must never be committed
+coordination/shared/*
+!coordination/shared/.gitkeep
+
 # Checkpoints
 checkpoints/
 *.safetensors

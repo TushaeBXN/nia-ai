@@ -1,0 +1,197 @@
+"""Nia's memory — layered, local, and entirely her own.
+
+  L0  identity        nia_self.json["identity"]     always loaded
+  L1  founding facts  nia_self.json["facts"]         always loaded
+  L2/L3 recall        nia_memory.db (embeddings)     retrieved on demand
+"""
+import os
+import json
+import sqlite3
+import struct
+import time
+from datetime import date
+
+import numpy as np
+import ollama
+
+EMBED_MODEL = "nomic-embed-text"
+HERE = os.path.dirname(__file__)
+SELF_PATH = os.path.join(HERE, "nia_self.json")
+DB_PATH = os.path.join(HERE, "nia_memory.db")
+
+
+def _to_blob(vec):
+    return struct.pack(f"<{len(vec)}f", *vec)
+
+
+def _from_blob(blob):
+    return np.array(struct.unpack(f"<{len(blob) // 4}f", blob), dtype=np.float32)
+
+
+def _age(dob_iso):
+    try:
+        y, m, d = (int(x) for x in dob_iso.split("-"))
+        t = date.today()
+        return t.year - y - ((t.month, t.day) < (m, d))
+    except Exception:
+        return None
+
+
+class Memory:
+    def __init__(self, db_path=DB_PATH, self_path=SELF_PATH):
+        self.db = sqlite3.connect(db_path, check_same_thread=False)
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS mem ("
+            "id INTEGER PRIMARY KEY, role TEXT, text TEXT, emb BLOB, "
+            "ts TEXT DEFAULT CURRENT_TIMESTAMP)"
+        )
+        cols = [r[1] for r in self.db.execute("PRAGMA table_info(mem)").fetchall()]
+        if "ts" not in cols:
+            self.db.execute("ALTER TABLE mem ADD COLUMN ts TEXT")
+            self.db.execute("UPDATE mem SET ts = datetime('now') WHERE ts IS NULL")
+        self.db.commit()
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS goals ("
+            "id INTEGER PRIMARY KEY, text TEXT, status TEXT DEFAULT 'active', "
+            "created_ts TEXT DEFAULT CURRENT_TIMESTAMP, "
+            "updated_ts TEXT DEFAULT CURRENT_TIMESTAMP)"
+        )
+        self.db.commit()
+        with open(self_path) as f:
+            self.self = json.load(f)
+        self._self_path = self_path
+
+    # --- L0/L1: always-loaded identity + founding facts -------------------
+    def wake_up(self):
+        s = self.self
+        lines = [f"[Who you are]\n{s['identity']}", "", "[What you know]"]
+        for fact in s.get("facts", []):
+            lines.append(f"- {fact['text']}")
+        age = _age(s.get("creator_dob", ""))
+        if age is not None:
+            lines.append(f"- Brian is currently {age} years old.")
+        goals_block = self.goals_summary()
+        if goals_block:
+            lines.append("")
+            lines.append(goals_block)
+        return "\n".join(lines)
+
+    def learn_fact(self, text, ftype="fact", confidence=0.9):
+        self.self.setdefault("facts", []).append(
+            {"text": text, "type": ftype, "confidence": confidence}
+        )
+        with open(self._self_path, "w") as f:
+            json.dump(self.self, f, indent=2)
+
+    # --- L2/L3: episodic / semantic recall --------------------------------
+    def _embed(self, text):
+        r = ollama.embed(model=EMBED_MODEL, input=text)
+        return np.array(r["embeddings"][0], dtype=np.float32)
+
+    def add(self, role, text):
+        emb = self._embed(text)
+        self.db.execute(
+            "INSERT INTO mem (role, text, emb) VALUES (?,?,?)",
+            (role, text, _to_blob(emb.tolist())),
+        )
+        self.db.commit()
+
+    def search_by_time(self, minutes_ago=None, since_ts=None, limit=10):
+        if minutes_ago is not None:
+            cutoff = time.strftime(
+                "%Y-%m-%d %H:%M:%S",
+                time.localtime(time.time() - minutes_ago * 60)
+            )
+            rows = self.db.execute(
+                "SELECT role, text, ts FROM mem WHERE ts >= ? ORDER BY ts ASC LIMIT ?",
+                (cutoff, limit)
+            ).fetchall()
+        elif since_ts is not None:
+            cutoff = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(since_ts))
+            rows = self.db.execute(
+                "SELECT role, text, ts FROM mem WHERE ts >= ? ORDER BY ts ASC LIMIT ?",
+                (cutoff, limit)
+            ).fetchall()
+        else:
+            rows = self.db.execute(
+                "SELECT role, text, ts FROM mem ORDER BY ts DESC LIMIT ?",
+                (limit,)
+            ).fetchall()
+        return rows
+
+    def remember(self, text, ftype="fact", confidence=0.9):
+        self.learn_fact(text, ftype, confidence)
+        self.add("fact", text)
+
+    # --- Goal memory -------------------------------------------------------
+    def add_goal(self, text):
+        text = text.strip()
+        if not text:
+            return None
+        cur = self.db.execute("INSERT INTO goals (text) VALUES (?)", (text,))
+        self.db.commit()
+        return cur.lastrowid
+
+    def complete_goal(self, text_fragment):
+        frag = text_fragment.strip().lower()
+        rows = self.db.execute(
+            "SELECT id, text FROM goals WHERE status='active'"
+        ).fetchall()
+        for gid, gtext in rows:
+            if frag in gtext.lower() or gtext.lower() in frag:
+                self.db.execute(
+                    "UPDATE goals SET status='completed', "
+                    "updated_ts=datetime('now') WHERE id=?", (gid,)
+                )
+                self.db.commit()
+                return gtext
+        return None
+
+    def get_active_goals(self):
+        return self.db.execute(
+            "SELECT id, text FROM goals WHERE status='active' ORDER BY created_ts ASC"
+        ).fetchall()
+
+    def goals_summary(self):
+        goals = self.get_active_goals()
+        if not goals:
+            return ""
+        lines = ["[Brian's active goals — follow up on these naturally]"]
+        for gid, text in goals:
+            lines.append(f"- [{gid}] {text}")
+        return "\n".join(lines)
+
+    # --- Contradiction detection -------------------------------------------
+    def check_contradiction(self, new_text, similarity_threshold=0.82):
+        rows = self.db.execute(
+            "SELECT text, emb FROM mem WHERE role IN ('user','fact')"
+        ).fetchall()
+        if not rows:
+            return []
+        q = self._embed(new_text)
+        q /= (np.linalg.norm(q) + 1e-9)
+        candidates = []
+        for text, blob in rows:
+            if text.strip() == new_text.strip():
+                continue
+            v = _from_blob(blob)
+            v /= (np.linalg.norm(v) + 1e-9)
+            score = float(np.dot(q, v))
+            if score >= similarity_threshold:
+                candidates.append((text, score))
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        return candidates[:3]
+
+    def search(self, query, k=4, min_score=0.65):
+        rows = self.db.execute("SELECT text, emb FROM mem").fetchall()
+        if not rows:
+            return []
+        q = self._embed(query)
+        q /= (np.linalg.norm(q) + 1e-9)
+        scored = []
+        for text, blob in rows:
+            v = _from_blob(blob)
+            v /= (np.linalg.norm(v) + 1e-9)
+            scored.append((float(np.dot(q, v)), text))
+        scored.sort(reverse=True)
+        return [t for s, t in scored[:k] if s >= min_score]
