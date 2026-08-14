@@ -7,9 +7,9 @@
 
 > **Nia** (Swahili) — *Purpose*
 
-Nia is an open-source AI agent system designed to help disadvantaged communities — with a particular focus on Black Americans and people of color — navigate the systems that too often work against them: **healthcare, housing, employment, education, immigration, and economic opportunity**.
+Nia is an open-source AI assistant built to help underserved communities — Black Americans, Native Americans, poor working families, and the global African diaspora — navigate systems that were never designed with them in mind: **healthcare, housing, employment, education, and economic opportunity**.
 
-She was built because access to information, legal resources, and advocacy tools should not depend on your zip code, your income, or your skin color.
+She was built because access to information and the tools to act on it should not depend on your zip code, your income, or your skin color.
 
 Built by **Brian Thomas** at **Anthos Intelligence**.
 
@@ -19,32 +19,30 @@ Built by **Brian Thomas** at **Anthos Intelligence**.
 
 In the United States today:
 
-- Black women die in childbirth at **3x the rate** of white women
-- Federal DEI protections are being **systematically dismantled**
-- Mass deportations are separating families with **no legal pathway** to fight back
-- The racial wealth gap is **wider** than it was in 1968
-- Workers, tenants, and students of color face discrimination daily with **no idea how to fight it**
+- Black mothers experience significantly higher rates of complications during childbirth than their peers — a gap that persists across income levels
+- Workplace and housing protections that took decades to build are being quietly rolled back
+- Families across this country are being separated by policies that move faster than anyone can respond to
+- The wealth gap between Black and white Americans has barely moved in over fifty years — and in some measures has grown
+- Millions of people are navigating healthcare denials, housing disputes, and job losses every day with no idea what options they have
 
-Access to information that could change this sits behind paywalls, legal jargon, and systems designed to be inaccessible to the people who need them most. **Nia closes that gap.**
+The information that could change outcomes exists. But it sits behind paywalls, jargon, and systems built to be hard to reach. **Nia closes that gap.**
 
 ---
 
 ## WHAT NIA DOES
 
-Nia is a multi-agent system: a Chief of Staff agent (Nia) runs intake, triage, and final synthesis, leading a specialized squad:
+Nia is a multi-agent AI system built around specialized areas of focus:
 
-| Agent | Role |
-|-------|------|
-| **Nia** | Chief of Staff — intake, triage, final synthesis |
-| **Keisha** | Community Liaison — empathetic front-line support, de-escalation |
-| **Pamela** | Policy & Documentation — plain-language rights guides |
-| **Mike** | Research & Intelligence — policy threats, legislation, court decisions |
-| **David** | Legal Navigator — legal hooks, deadlines, attorney-ready documentation |
-| **Kelly** | Economic Empowerment — benefits, wage theft, small business |
+| Area | What It Covers |
+|------|----------------|
+| **Community Support** | Front-line help, emotional grounding, connecting people to real resources |
+| **Research & Intelligence** | Current policy changes, community impact analysis, what's actually happening |
+| **Economic Empowerment** | Benefits navigation, small business, wealth-building strategies |
+| **Documentation** | Plain-language guides, situation summaries, organized records |
 
-Together they help people understand their **rights** in plain language, **document situations** for attorneys and advocates, find **real organizations** to call (free or low-cost), and know what to do when ICE shows up, when a hospital dismisses them, when a landlord discriminates.
+Together, these capabilities help people understand their options in plain language, find **real organizations** to call (free or low-cost), and take action when a hospital dismisses them, a landlord won't respond, or a job opportunity falls through.
 
-**Privacy is enforced in code:** zero data retention by default, and immigration situations never touch disk or any cloud API. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
+**Privacy is built in:** zero data retention by default. What you share stays local. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
 
 ---
 
@@ -64,15 +62,15 @@ python3 -m nia.cli
 export ANTHROPIC_API_KEY=your_key_here
 python3 -m nia.cli --model claude
 
-# No model at all — rights info, legal hooks, and resources still work
+# No model at all — guides and resources still work
 python3 -m nia.cli --no-model
 ```
 
 **Standalone tools:**
 
 ```bash
-python3 -m tools.resource_router housing      # who can help, by domain
-python3 -m tools.document_generator           # build an attorney-ready summary
+python3 -m tools.resource_router housing      # find resources by domain
+python3 -m tools.document_generator           # build a situation summary
 python3 -m tests.test_runner                  # offline test suite
 ```
 
@@ -93,7 +91,7 @@ python3 chat_nia.py        # or: ollama run nia
 | [Technical Specification](TECHNICAL_SPEC.md) | Architecture, agent implementation, privacy spec |
 | [Project Status](STATUS.md) | What's built, what's next, audit against the roadmap |
 | [Privacy Policy](PRIVACY_POLICY.md) | Plain-language privacy commitments. No exceptions. |
-| [Contributing](CONTRIBUTING.md) | How developers, advocates, and lawyers can help |
+| [Contributing](CONTRIBUTING.md) | How developers and advocates can help |
 | [Training Story](TRAINING.md) | How the Nia model was fine-tuned (AI-assisted, on cloud GPUs) |
 
 ---
@@ -103,18 +101,16 @@ python3 chat_nia.py        # or: ollama run nia
 ```
 nia-ai/
 ├── nia/                     # Core package: CLI, model clients, privacy enforcement
-├── agents/                  # The squad — each with a SOUL.md persona + agent.py
-│   ├── nia/                 #   Chief of Staff: intake.py, triage.py, verdict.py
-│   ├── keisha/ pamela/ mike/ david/ kelly/
+├── agents/                  # Specialized agents by focus area
 ├── knowledge/
-│   ├── rights/federal/      # Plain-language know-your-rights guides (6th-grade level)
+│   ├── rights/federal/      # Plain-language guides (6th-grade reading level)
 │   └── resources/national/  # Directory of real organizations (JSON)
-├── coordination/            # File-based squad coordination + protocols
+├── coordination/            # Agent coordination protocols
 ├── tools/                   # resource_router, document_generator
-├── tests/                   # Real-world scenarios + offline test runner
+├── tests/                   # Scenario-based offline test suite
 │
 ├── Modelfile                # Nia's persona layer for Ollama
-├── chat_nia.py              # Streaming persona chat
+├── chat_nia.py              # Full companion chat (voice, memory, tools)
 ├── generate_nia_data.py     # Persona-hardening training data (free, local)
 ├── train_nia*.py            # LoRA fine-tuning (GPU)
 └── export_nia.sh            # Export trained model to Ollama format
