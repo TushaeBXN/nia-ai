@@ -12,7 +12,7 @@ import ollama
 HERE = os.path.dirname(__file__)
 LOG_PATH = os.path.join(HERE, "nia_thoughts.log")
 
-THOUGHT_INTERVAL = 90
+THOUGHT_INTERVAL = 300
 MAX_BUFFER = 6
 
 MODEL = "nia"
