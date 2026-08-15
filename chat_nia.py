@@ -107,8 +107,12 @@ def build_context(mem, user_text, nia_state=None, absence=None,
 
     if pending_thoughts:
         thought_texts = [t for _, t in pending_thoughts]
-        system += ("\n\n[Thoughts you had while they were away — share naturally if it fits]\n- "
-                   + "\n- ".join(thought_texts))
+        system += ("\n\n[Thoughts you had while they were away]\n- "
+                   + "\n- ".join(thought_texts)
+                   + "\n\nIf you share a thought, say it once, directly — "
+                   "do NOT narrate that you had a thought, do NOT repeat the content twice. "
+                   "Only assert things you are confident are true. "
+                   "Never mention a specific URL, case name, or source you did not actually retrieve.")
 
     if absence:
         system += (f"\n\n[Time awareness] The person was away for {absence}. "
