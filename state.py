@@ -4,8 +4,13 @@ Mood and focus are not performance. They're constraints that shape how she speak
 A tired Nia is shorter, more direct. A fired-up Nia leans into the deposition mode.
 State is session-only — resets on restart.
 """
+import json
+import os
 import time
 import random
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+_STATE_PATH = os.path.join(HERE, "nia_state.json")
 
 MOODS = {
     "focused":    "focused and direct — legislative precision, no wasted words",
@@ -58,6 +63,31 @@ class InternalState:
         else:
             return f"a while — around {int(mins)} minutes"
 
+    def save(self):
+        """Persist emotional texture across restarts. Mood/energy reset intentionally."""
+        data = {
+            "session_wins": self.session_wins[-10:],
+            "session_frustrations": self.session_frustrations[-10:],
+        }
+        try:
+            with open(_STATE_PATH, "w") as f:
+                json.dump(data, f)
+        except OSError:
+            pass
+
+    @classmethod
+    def restore(cls):
+        """Return an InternalState seeded with persisted context if available."""
+        inst = cls()
+        try:
+            with open(_STATE_PATH) as f:
+                data = json.load(f)
+            inst.session_wins = list(data.get("session_wins", []))
+            inst.session_frustrations = list(data.get("session_frustrations", []))
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        return inst
+
     def after_turn(self):
         now = time.time()
         gap = now - self._last_turn_time
@@ -68,6 +98,7 @@ class InternalState:
         if now > self._mood_locked_until:
             self._shift_mood()
             self._mood_locked_until = now + (5 * 60)
+        self.save()
 
     def _shift_mood(self):
         e = self.energy

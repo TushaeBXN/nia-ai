@@ -114,6 +114,13 @@ class ThoughtBuffer:
             self._thoughts.clear()
         return [(ts, text) for ts, text in thoughts]
 
+    def drain_one(self):
+        """Remove and return the oldest thought as (ts, text), or None."""
+        with self._lock:
+            if not self._thoughts:
+                return None
+            return self._thoughts.pop(0)
+
     def has_thoughts(self):
         with self._lock:
             return len(self._thoughts) > 0

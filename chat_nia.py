@@ -211,6 +211,140 @@ def run_turn(history, mem, image=None, nia_state=None,
     return history
 
 
+def run_turn_streaming(history, mem, image=None, nia_state=None,
+                       absence=None, pending_thoughts=None):
+    """Generator variant of run_turn. Yields event dicts for SSE encoding.
+
+    Events:
+      {"type": "tool",  "name": str}
+      {"type": "chunk", "text": str}
+      {"type": "done",  "mood": str, "energy": float, "turn": int}
+    """
+    import logger as _log
+
+    def _done():
+        return {
+            "type": "done",
+            "mood":   nia_state.mood if nia_state else "focused",
+            "energy": round(nia_state.energy, 2) if nia_state else 1.0,
+            "turn":   nia_state.turn_count if nia_state else 0,
+        }
+
+    def _fake_stream(text):
+        words = text.split()
+        for i, word in enumerate(words):
+            yield {"type": "chunk", "text": word + (" " if i < len(words) - 1 else "")}
+
+    user_msg = history[-1]
+    if image:
+        b64 = _b64_image(image)
+        user_msg["images"] = [b64]
+
+    messages = build_context(mem, user_msg["content"], nia_state,
+                             absence=absence,
+                             pending_thoughts=pending_thoughts) + _drop_images(history)
+    user_task = user_msg.get("content", "")
+
+    # ── Document / vision case (sync describe, fake-stream reply) ─────────────
+    if image:
+        vision_messages = [
+            {"role": "system", "content":
+                "You are a document and image reader. Examine this carefully. "
+                "Transcribe ALL text, numbers, dates, names, and key details you see. "
+                "If it's a document (debt letter, eviction notice, credit report, legal filing), "
+                "extract every relevant field. Be thorough and literal."},
+            {"role": "user", "content": user_msg["content"], "images": [b64]},
+        ]
+        vision_resp = ollama.chat(model=VISION_MODEL, messages=vision_messages, keep_alive="30m")
+        description = vision_resp["message"].get("content", "").strip()
+
+        if description:
+            sys_msgs = build_context(mem, user_msg["content"], nia_state,
+                                     absence=absence, pending_thoughts=pending_thoughts)
+            sys_msgs[0]["content"] += (
+                f"\n\n[Document/image contents — you just examined this]\n{description}"
+                "\n\nTell the person exactly what this means, what their rights are, "
+                "and what their options are. Give receipts."
+            )
+            clean_user = user_msg.copy()
+            clean_user.pop("images", None)
+            nia_messages = sys_msgs + _drop_images(history[:-1]) + [clean_user]
+            resp = ollama.chat(model=MODEL, messages=nia_messages, tools=tools.TOOLS,
+                               keep_alive="30m", options={"num_ctx": CTX_WINDOW})
+            msg = resp["message"]
+            if msg.get("thinking"):
+                with open("nia_thoughts.log", "a") as f:
+                    f.write(msg["thinking"].strip() + "\n---\n")
+            history.append(msg)
+            if msg.get("content"):
+                clean = _strip_trailers(msg["content"])
+                msg["content"] = clean
+                history[-1] = msg
+                yield from _fake_stream(clean)
+                voice.speak(clean)
+                mem.add("assistant", clean)
+
+        if nia_state:
+            nia_state.after_turn()
+        yield _done()
+        return
+
+    # ── Normal tool-hop loop ──────────────────────────────────────────────────
+    _seen_calls = {}
+    msg = None
+
+    for _ in range(MAX_TOOL_HOPS):
+        with _log.Timer("model_call", model=MODEL):
+            resp = ollama.chat(model=MODEL, messages=messages, tools=tools.TOOLS,
+                               keep_alive="30m", options={"num_ctx": CTX_WINDOW})
+        msg = resp["message"]
+        if msg.get("thinking"):
+            with open("nia_thoughts.log", "a") as f:
+                f.write(msg["thinking"].strip() + "\n---\n")
+        messages.append(msg)
+        history.append(msg)
+
+        calls = msg.get("tool_calls") or []
+        if not calls:
+            break
+
+        for call in calls:
+            fn   = call["function"]
+            name = fn["name"]
+            args = fn.get("arguments", {})
+            yield {"type": "tool", "name": name}
+            _log.log("tool_call", tool=name)
+
+            call_key = (name, tuple(sorted(
+                (k, str(v)) for k, v in args.items()
+            ) if isinstance(args, dict) else ()))
+            if call_key in _seen_calls:
+                result = _seen_calls[call_key]
+            else:
+                result = tools.dispatch(name, args, mem)
+                _seen_calls[call_key] = result
+
+            reminder = (f"\n\n[You are mid-task. Complete the user's request: "
+                        f"\"{user_task[:150]}\". Do not greet — keep working.]")
+            tool_reply = {
+                "role": "tool",
+                "content": (str(result) if result else "done") + reminder,
+            }
+            messages.append(tool_reply)
+            history.append(tool_reply)
+
+    if msg and msg.get("content"):
+        clean = _strip_trailers(msg["content"])
+        msg["content"] = clean
+        yield from _fake_stream(clean)
+        voice.speak(clean)
+        mem.add("assistant", clean)
+
+    if nia_state:
+        nia_state.after_turn()
+    yield _done()
+
+
 _CHECKIN_PROMPTS = {
     "focused":    "You've been quiet, staying focused. Check in with Brian about something specific — a task he mentioned, something he was working on. Direct and brief.",
     "fired_up":   "You've been quiet but the fire hasn't gone out. Say something sharp — a fact you've been sitting with, a pattern you noticed, or a question that's been nagging. Short.",
