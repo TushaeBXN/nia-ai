@@ -32,12 +32,40 @@ import learnings as _learnings
 
 _session_learnings: str = ""
 
-MODEL = os.environ.get("NIA_MODEL", "nia")
-VISION_MODEL = os.environ.get("NIA_VISION_MODEL", "nia")
+MODEL        = os.environ.get("NIA_MODEL",        "nia")
+HERMES_MODEL = os.environ.get("NIA_HERMES_MODEL", "amy-hermes")
+VISION_MODEL = os.environ.get("NIA_VISION_MODEL", "gemma4:e2b")
+CODE_MODEL   = os.environ.get("NIA_CODE_MODEL",   "deepseek-coder:6.7b")
 MAX_TOOL_HOPS = 4
 HISTORY_WINDOW = 16
 CTX_WINDOW = 8192
 SELF_PORTRAIT = os.path.join(os.path.dirname(__file__), "nia.png")
+
+# Signals that hermes should handle tool orchestration
+_HERMES_RE = re.compile(
+    r'\b(research|look up|find out|search|investigate|dig into'
+    r'|eviction|credit report|credit dispute|debt collector|debt collection'
+    r'|lawsuit|court|statute|fcra|fdcpa|fair housing|title vii|treaty'
+    r'|legal|rights|law|policy|ordinance|regulation|ruling|case law'
+    r'|compare|comprehensive|thorough|step by step|walk me through'
+    r'|explain how|how do i fight|how do i dispute|what can i do about)\b',
+    re.I,
+)
+
+_CODE_RE = re.compile(
+    r'```|def |class |import |function |#!/|sql |query|script|code|debug|error\s+on\s+line',
+    re.I,
+)
+
+
+def _needs_hermes(text: str) -> bool:
+    """True when the request warrants multi-hop tool orchestration via hermes."""
+    word_count = len(text.split())
+    return word_count > 40 or bool(_HERMES_RE.search(text))
+
+
+def _is_code_request(text: str) -> bool:
+    return bool(_CODE_RE.search(text))
 
 _TRAILER_RE = re.compile(
     r'(how\s+(else\s+)?can\s+i\s+(be\s+there|help|assist)'
@@ -114,8 +142,9 @@ def run_turn(history, mem, image=None, nia_state=None,
     messages = build_context(mem, user_msg["content"], nia_state,
                              absence=absence,
                              pending_thoughts=pending_thoughts) + _drop_images(history)
+    user_task = user_msg.get("content", "")
 
-    # Document/image vision: stripped describe pass → inject into context
+    # ── Vision: gemma4:e2b reads the doc, nia interprets ─────────────────────
     if image:
         vision_messages = [
             {"role": "system", "content":
@@ -123,9 +152,7 @@ def run_turn(history, mem, image=None, nia_state=None,
                 "Transcribe ALL text, numbers, dates, names, and key details you see. "
                 "If it's a document (debt letter, eviction notice, credit report, legal filing), "
                 "extract every relevant field. Be thorough and literal."},
-            {"role": "user",
-             "content": user_msg["content"],
-             "images": [b64]}
+            {"role": "user", "content": user_task, "images": [b64]},
         ]
         vision_resp = ollama.chat(model=VISION_MODEL, messages=vision_messages,
                                   keep_alive="30m")
@@ -134,18 +161,18 @@ def run_turn(history, mem, image=None, nia_state=None,
 
         if description:
             sys_msgs = build_context(
-                mem, user_msg["content"], nia_state,
+                mem, user_task, nia_state,
                 absence=absence, pending_thoughts=pending_thoughts
             )
             sys_msgs[0]["content"] += (
                 f"\n\n[Document/image contents — you just examined this]\n{description}"
-                f"\n\nTell the person exactly what this means, what their rights are, "
-                f"and what their options are. Give receipts."
+                "\n\nTell the person exactly what this means, what their rights are, "
+                "and what their options are. Give receipts."
             )
             clean_user = user_msg.copy()
             clean_user.pop("images", None)
-            amy_messages = sys_msgs + _drop_images(history[:-1]) + [clean_user]
-            resp = ollama.chat(model=MODEL, messages=amy_messages,
+            nia_messages = sys_msgs + _drop_images(history[:-1]) + [clean_user]
+            resp = ollama.chat(model=MODEL, messages=nia_messages,
                                tools=tools.TOOLS, keep_alive="30m",
                                options={"num_ctx": CTX_WINDOW})
             msg = resp["message"]
@@ -158,15 +185,21 @@ def run_turn(history, mem, image=None, nia_state=None,
                 msg["content"] = clean
                 voice.speak(clean)
                 mem.add("assistant", clean)
-            if nia_state:
-                nia_state.after_turn()
+        if nia_state:
+            nia_state.after_turn()
         return history
 
+    # ── Routing: hermes works complex tool chains, nia speaks ─────────────────
+    use_hermes = _needs_hermes(user_task)
+    work_model = HERMES_MODEL if use_hermes else MODEL
+    if use_hermes:
+        print(f"  [router] complex request → hermes orchestrates")
+
     _seen_calls = {}
-    user_task = user_msg.get("content", "")
+    msg = None
 
     for _ in range(MAX_TOOL_HOPS):
-        resp = ollama.chat(model=MODEL, messages=messages, tools=tools.TOOLS,
+        resp = ollama.chat(model=work_model, messages=messages, tools=tools.TOOLS,
                            keep_alive="30m", options={"num_ctx": CTX_WINDOW})
         msg = resp["message"]
         if msg.get("thinking"):
@@ -194,14 +227,24 @@ def run_turn(history, mem, image=None, nia_state=None,
                 _seen_calls[call_key] = result
             reminder = (f"\n\n[You are mid-task. Complete the user's request: "
                         f"\"{user_task[:150]}\". Do not greet — keep working.]")
-            tool_reply = {
-                "role": "tool",
-                "content": (str(result) if result else "done") + reminder,
-            }
-            messages.append(tool_reply)
-            history.append(tool_reply)
+            messages.append({"role": "tool",
+                              "content": (str(result) if result else "done") + reminder})
+            history.append(messages[-1])
 
-    if msg.get("content"):
+    # ── Nia voices the final answer (always) ─────────────────────────────────
+    if use_hermes and msg and msg.get("content"):
+        raw = msg["content"]
+        voice_msgs = build_context(mem, user_task, nia_state) + [
+            {"role": "assistant", "content": f"[Research]\n{raw}"},
+            {"role": "user", "content": "Give me your read on this."},
+        ]
+        nia_resp = ollama.chat(model=MODEL, messages=voice_msgs,
+                               keep_alive="30m", options={"num_ctx": CTX_WINDOW})
+        final_msg = nia_resp["message"]
+        history.append(final_msg)
+        msg = final_msg
+
+    if msg and msg.get("content"):
         clean = _strip_trailers(msg["content"])
         msg["content"] = clean
         voice.speak(clean)
@@ -289,13 +332,37 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
         yield _done()
         return
 
-    # ── Normal tool-hop loop ──────────────────────────────────────────────────
+    # ── Code path: deepseek-coder with true token streaming ──────────────────
+    if _is_code_request(user_task):
+        yield {"type": "tool", "name": "__code__"}
+        full_text = ""
+        stream = ollama.chat(model=CODE_MODEL, messages=messages,
+                             stream=True, keep_alive="30m",
+                             options={"num_ctx": CTX_WINDOW})
+        for chunk in stream:
+            token = chunk["message"].get("content", "")
+            if token:
+                full_text += token
+                yield {"type": "chunk", "text": token}
+        if full_text:
+            clean = _strip_trailers(full_text)
+            mem.add("assistant", clean)
+            history.append({"role": "assistant", "content": clean})
+            voice.speak(clean)
+        if nia_state:
+            nia_state.after_turn()
+        yield _done()
+        return
+
+    # ── Routing: hermes works complex tool chains, nia speaks ─────────────────
+    use_hermes = _needs_hermes(user_task)
+    work_model = HERMES_MODEL if use_hermes else MODEL
     _seen_calls = {}
     msg = None
 
     for _ in range(MAX_TOOL_HOPS):
-        with _log.Timer("model_call", model=MODEL):
-            resp = ollama.chat(model=MODEL, messages=messages, tools=tools.TOOLS,
+        with _log.Timer("model_call", model=work_model):
+            resp = ollama.chat(model=work_model, messages=messages, tools=tools.TOOLS,
                                keep_alive="30m", options={"num_ctx": CTX_WINDOW})
         msg = resp["message"]
         if msg.get("thinking"):
@@ -326,12 +393,22 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
 
             reminder = (f"\n\n[You are mid-task. Complete the user's request: "
                         f"\"{user_task[:150]}\". Do not greet — keep working.]")
-            tool_reply = {
-                "role": "tool",
-                "content": (str(result) if result else "done") + reminder,
-            }
-            messages.append(tool_reply)
-            history.append(tool_reply)
+            messages.append({"role": "tool",
+                              "content": (str(result) if result else "done") + reminder})
+            history.append(messages[-1])
+
+    # ── Nia voices the final answer (always) ─────────────────────────────────
+    if use_hermes and msg and msg.get("content"):
+        raw = msg["content"]
+        voice_msgs = build_context(mem, user_task, nia_state) + [
+            {"role": "assistant", "content": f"[Research]\n{raw}"},
+            {"role": "user", "content": "Give me your read on this."},
+        ]
+        with _log.Timer("nia_voice", model=MODEL):
+            nia_resp = ollama.chat(model=MODEL, messages=voice_msgs,
+                                   keep_alive="30m", options={"num_ctx": CTX_WINDOW})
+        msg = nia_resp["message"]
+        history.append(msg)
 
     if msg and msg.get("content"):
         clean = _strip_trailers(msg["content"])
