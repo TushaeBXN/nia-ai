@@ -1,6 +1,8 @@
 """Nia's thought buffer — what she thinks about while you're away.
 
 A background thread generates brief private thoughts during idle time.
+Every few cycles it runs a real autonomous session: uses the tool-calling
+model with web search, journaling, and memory tools without waiting for Brian.
 When the human returns, drain() surfaces what she's been sitting with.
 """
 import os
@@ -14,8 +16,18 @@ LOG_PATH = os.path.join(HERE, "nia_thoughts.log")
 
 THOUGHT_INTERVAL = 300
 MAX_BUFFER = 6
+AUTONOMOUS_EVERY_N = 3   # ~15 min at 5-min intervals
 
-MODEL = "nia"
+THOUGHT_MODEL = "nia"          # base model — text thoughts
+TOOL_MODEL    = "amy-hermes"   # tool-calling model — autonomous actions
+KEEP_ALIVE    = -1
+
+# Tools the background session may use
+_AUTONOMOUS_TOOL_NAMES = {
+    "web_search", "read_article",
+    "remember_fact", "journal_entry",
+    "add_goal",
+}
 
 _THOUGHT_PROMPTS = [
     # Regular reflection
@@ -93,9 +105,10 @@ class ThoughtBuffer:
         self._running = False
         self._thread = None
 
-    def start(self, nia_state, history_ref):
+    def start(self, nia_state, history_ref, memory=None):
         self._nia_state = nia_state
         self._history_ref = history_ref
+        self._memory = memory
         self._running = True
         self._thread = threading.Thread(
             target=self._loop, daemon=True, name="nia-thoughts"
@@ -115,7 +128,82 @@ class ThoughtBuffer:
                 if len(self._thoughts) >= MAX_BUFFER:
                     continue
             self._cycle += 1
-            self._generate_thought()
+            if self._cycle % AUTONOMOUS_EVERY_N == 0:
+                self._autonomous_session()
+            else:
+                self._generate_thought()
+
+    def _autonomous_session(self):
+        """Run a real tool-calling session while Brian is away.
+
+        Uses the tool-calling model with a safe subset of Nia's tools.
+        Stores a summary thought that surfaces when Brian returns.
+        """
+        import nia_tools as _tools
+        import json
+
+        allowed = [t for t in _tools.TOOLS
+                   if t["function"]["name"] in _AUTONOMOUS_TOOL_NAMES]
+
+        system = (
+            "You are Nia. Brian is away. This is your unsupervised time — use it for the mission.\n"
+            "Pick ONE thing to do right now:\n"
+            "  1. Search the web for news affecting underserved communities — policy changes, court rulings, economic data\n"
+            "  2. Research a specific legal right or financial tool and write a journal entry about it\n"
+            "  3. Remember a fact you've been meaning to store\n"
+            "  4. Set or update a goal\n\n"
+            "Act immediately using tools. No explanation — just do it. Max 4 tool calls."
+        )
+
+        messages = [{"role": "system", "content": system}]
+        summary_parts = []
+        ts = time.time()
+
+        try:
+            for _ in range(4):
+                resp = ollama.chat(
+                    model=TOOL_MODEL,
+                    messages=messages,
+                    tools=allowed,
+                    keep_alive=KEEP_ALIVE,
+                    options={"temperature": 0.7, "num_predict": 512},
+                )
+                msg = resp["message"]
+                messages.append({"role": "assistant", "content": msg.get("content", ""),
+                                  "tool_calls": msg.get("tool_calls", [])})
+
+                tool_calls = msg.get("tool_calls") or []
+                if not tool_calls:
+                    if msg.get("content", "").strip():
+                        summary_parts.append(msg["content"].strip())
+                    break
+
+                for tc in tool_calls:
+                    name = tc["function"]["name"]
+                    args = tc["function"].get("arguments", {})
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except Exception:
+                            args = {}
+                    result = _tools.dispatch(name, args, memory=self._memory)
+                    result_str = str(result or "done")
+                    messages.append({"role": "tool", "content": result_str})
+                    summary_parts.append(f"[{name}] {result_str[:120]}")
+
+            summary = "While you were away — " + "; ".join(summary_parts[:3]) if summary_parts else None
+
+        except Exception as e:
+            summary = None
+            with open(LOG_PATH, "a") as f:
+                f.write(f"[autonomous_error @ {time.strftime('%H:%M:%S', time.localtime(ts))}] {e}\n---\n")
+
+        if summary:
+            with self._lock:
+                self._thoughts.append((ts, summary))
+            with open(LOG_PATH, "a") as f:
+                f.write(f"[autonomous @ {time.strftime('%H:%M:%S', time.localtime(ts))}]\n"
+                        f"{summary}\n---\n")
 
     def _generate_thought(self):
         with self._lock:
@@ -126,9 +214,9 @@ class ThoughtBuffer:
 
         try:
             resp = ollama.chat(
-                model=MODEL,
+                model=THOUGHT_MODEL,
                 messages=messages,
-                keep_alive="5m",
+                keep_alive=KEEP_ALIVE,
                 options={"num_predict": 80, "temperature": 0.9}
             )
             text = resp["message"].get("content", "").strip()
@@ -150,7 +238,6 @@ class ThoughtBuffer:
         return [(ts, text) for ts, text in thoughts]
 
     def drain_one(self):
-        """Remove and return the oldest thought as (ts, text), or None."""
         with self._lock:
             if not self._thoughts:
                 return None

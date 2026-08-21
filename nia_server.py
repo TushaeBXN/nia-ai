@@ -50,8 +50,9 @@ _PRIMER = {"role": "assistant", "content": random.choice(_OPENERS)}
 _history = [_PRIMER]
 
 nia._session_learnings = _learnings.load_recent_learnings()
+nia._warmup_models()
 start_spontaneous_thread(_history, _mem, _nia_state)
-_thought_buffer.start(_nia_state, _history)
+_thought_buffer.start(_nia_state, _history, memory=_mem)
 
 app = FastAPI(title="Nia")
 app.mount("/static", StaticFiles(directory=HERE), name="static")
@@ -243,6 +244,12 @@ async def primer():
     return JSONResponse({"text": _PRIMER["content"]})
 
 
+@app.get("/knowledge")
+async def knowledge():
+    rows = _mem.get_knowledge_sources() if hasattr(_mem, "get_knowledge_sources") else []
+    return JSONResponse({"sources": rows})
+
+
 # ── UI HTML ───────────────────────────────────────────────────────────────────
 _UI_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -252,17 +259,17 @@ _UI_HTML = """<!DOCTYPE html>
 <title>Nia</title>
 <style>
   :root {
-    --bg:       #080b0f;
-    --surface:  #0f1318;
-    --border:   #1c2230;
-    --nia-bg:   #111820;
-    --user-bg:  #141a24;
-    --accent:   #c4882a;
-    --accent2:  #e4a83e;
-    --text:     #e4e0d4;
-    --muted:    #666050;
-    --mood-bg:  #141820;
-    --thinking: #1a2230;
+    --bg:       #080A0F;
+    --surface:  #111520;
+    --border:   #1C2235;
+    --nia-bg:   #151B2E;
+    --user-bg:  #131828;
+    --accent:   #C9A84C;
+    --accent2:  #E8C56A;
+    --text:     #F0F4FF;
+    --muted:    #8B9BB4;
+    --mood-bg:  #151B2E;
+    --thinking: #1A2235;
     --green:    #2d7d6f;
   }
 
@@ -368,9 +375,9 @@ _UI_HTML = """<!DOCTYPE html>
 
   .user .bubble {
     background: var(--user-bg);
-    border: 1px solid #1e2840;
+    border: 1px solid #1C2A3A;
     border-top-right-radius: 4px;
-    color: #b8c0cc;
+    color: #A0B0CC;
   }
 
   .thinking-row { display: flex; gap: 10px; align-items: flex-start; }
@@ -464,7 +471,7 @@ _UI_HTML = """<!DOCTYPE html>
   #sendBtn {
     background: var(--accent);
     border-color: var(--accent);
-    color: #000;
+    color: #0A0800;
     font-size: 17px;
     font-weight: 700;
   }
@@ -484,6 +491,69 @@ _UI_HTML = """<!DOCTYPE html>
   #clearImg  { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
   #clearImg:hover { color: #ef4444; }
   #fileInput { display: none; }
+
+  /* ── learn / knowledge panel ── */
+  #knowledgePanel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 320px;
+    height: 100%;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #knowledgePanel.open { transform: translateX(0); }
+  .kp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .kp-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .kp-close:hover { color: var(--text); }
+  .drop-zone {
+    margin: 16px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: #1a1a2e;
+    color: var(--accent2);
+  }
+  .drop-zone .dz-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+  #kpFileInput { display: none; }
+  #kpList { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+  .kp-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .source-icon { font-size: 16px; }
+  #learnBtn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 9px 11px;
+    font-size: 18px;
+    line-height: 1;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  #learnBtn:hover { border-color: var(--accent); color: var(--accent2); }
 
   .sys-msg {
     text-align: center;
@@ -519,10 +589,24 @@ _UI_HTML = """<!DOCTYPE html>
   <button id="clearImg" title="Remove">✕</button>
 </div>
 
+<div id="knowledgePanel">
+  <div class="kp-header">
+    📚 Nia's Knowledge
+    <button class="kp-close" id="kpClose">✕</button>
+  </div>
+  <div class="drop-zone" id="dropZone">
+    <span class="dz-icon">📄</span>
+    Drop a PDF here or click to upload
+    <input type="file" id="kpFileInput" accept=".pdf">
+  </div>
+  <div id="kpList"></div>
+</div>
+
 <div id="inputbar">
-  <button class="icon-btn" id="cameraBtn" title="Capture / scan document">📄</button>
-  <label class="icon-btn" for="fileInput" title="Attach document or image">🖼️</label>
-  <input type="file" id="fileInput" accept="image/*,.pdf">
+  <button class="icon-btn" id="cameraBtn" title="Capture / scan document">📷</button>
+  <label class="icon-btn" for="fileInput" title="Attach image">🖼️</label>
+  <input type="file" id="fileInput" accept="image/*">
+  <button id="learnBtn" title="Teach Nia a PDF">📚</button>
   <textarea id="input" placeholder="What's your situation?" rows="1"></textarea>
   <button class="icon-btn" id="sendBtn" title="Send (Enter)">➤</button>
 </div>
@@ -673,7 +757,7 @@ function appendUser(text, imgDataUrl) {
   row.className = "msg-row user";
 
   const av = document.createElement("div");
-  av.style.cssText = "width:32px;height:32px;border-radius:50%;background:#141a24;border:1.5px solid #2a3040;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;margin-top:2px;";
+  av.style.cssText = "width:32px;height:32px;border-radius:50%;background:#151B2E;border:1.5px solid #2A3450;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;margin-top:2px;";
   av.textContent = "🧑";
 
   const bub = document.createElement("div");
@@ -803,6 +887,71 @@ setInterval(async () => {
 // ── load primer ───────────────────────────────────────────────────────────────
 fetch("/primer").then(r => r.json()).then(d => appendNia(d.text));
 input.focus();
+
+// ── knowledge panel ──────────────────────────────────────────────────────────
+const kpanel   = document.getElementById("knowledgePanel");
+const learnBtn = document.getElementById("learnBtn");
+const kpClose  = document.getElementById("kpClose");
+const dropZone = document.getElementById("dropZone");
+const kpFileInput = document.getElementById("kpFileInput");
+const kpList   = document.getElementById("kpList");
+
+learnBtn.addEventListener("click", () => {
+  kpanel.classList.toggle("open");
+  if (kpanel.classList.contains("open")) loadKnowledge();
+});
+kpClose.addEventListener("click", () => kpanel.classList.remove("open"));
+
+dropZone.addEventListener("click", () => kpFileInput.click());
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) uploadPDF(file);
+});
+kpFileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (file) uploadPDF(file);
+  e.target.value = "";
+});
+
+async function uploadPDF(file) {
+  dropZone.textContent = "Uploading…";
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("label", file.name.replace(/\\.pdf$/i, ""));
+  try {
+    const r = await fetch("/learn", { method: "POST", body: fd });
+    const d = await r.json();
+    if (d.error) { appendSys("Learn error: " + d.error); }
+    else { appendSys("📚 Nia now knows '" + d.label + "' — " + d.chunks + " chunks in memory."); }
+    loadKnowledge();
+  } catch (err) {
+    appendSys("Upload failed: " + err.message);
+  } finally {
+    dropZone.innerHTML = '<span class="dz-icon">📄</span>Drop a PDF here or click to upload';
+  }
+}
+
+async function loadKnowledge() {
+  try {
+    const r = await fetch("/knowledge");
+    const d = await r.json();
+    kpList.innerHTML = "";
+    if (!d.sources || d.sources.length === 0) {
+      kpList.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No documents yet. Drop a PDF above.</div>';
+      return;
+    }
+    for (const src of d.sources) {
+      const item = document.createElement("div");
+      item.className = "kp-item";
+      item.innerHTML = '<span class="source-icon">📄</span><span>' + src + '</span>';
+      kpList.appendChild(item);
+    }
+  } catch {}
+}
 </script>
 </body>
 </html>"""

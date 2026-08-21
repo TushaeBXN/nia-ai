@@ -39,6 +39,8 @@ CODE_MODEL   = os.environ.get("NIA_CODE_MODEL",   "deepseek-coder:6.7b")
 MAX_TOOL_HOPS = 4
 HISTORY_WINDOW = 16
 CTX_WINDOW = 8192
+KEEP_ALIVE = -1
+MAX_LEARNINGS_CHARS = 2000
 SELF_PORTRAIT = os.path.join(os.path.dirname(__file__), "nia.png")
 
 # Signals that hermes should handle tool orchestration
@@ -101,7 +103,7 @@ def build_context(mem, user_text, nia_state=None, absence=None,
                   pending_thoughts=None):
     system = SYSTEM_PROMPT + "\n\n" + mem.wake_up()
     if _session_learnings:
-        system += "\n\n" + _session_learnings
+        system += "\n\n" + _session_learnings[:MAX_LEARNINGS_CHARS]
     if nia_state:
         system += "\n\n[Internal state]\n" + nia_state.state_summary()
 
@@ -159,7 +161,7 @@ def run_turn(history, mem, image=None, nia_state=None,
             {"role": "user", "content": user_task, "images": [b64]},
         ]
         vision_resp = ollama.chat(model=VISION_MODEL, messages=vision_messages,
-                                  keep_alive="5m")
+                                  keep_alive=KEEP_ALIVE)
         description = vision_resp["message"].get("content", "").strip()
         print(f"  [vision] read: {description[:120]}...")
 
@@ -177,7 +179,7 @@ def run_turn(history, mem, image=None, nia_state=None,
             clean_user.pop("images", None)
             nia_messages = sys_msgs + _drop_images(history[:-1]) + [clean_user]
             resp = ollama.chat(model=MODEL, messages=nia_messages,
-                               tools=tools.TOOLS, keep_alive="5m",
+                               tools=tools.TOOLS, keep_alive=KEEP_ALIVE,
                                options={"num_ctx": CTX_WINDOW})
             msg = resp["message"]
             if msg.get("thinking"):
@@ -187,7 +189,7 @@ def run_turn(history, mem, image=None, nia_state=None,
             if msg.get("content"):
                 clean = _strip_trailers(msg["content"])
                 msg["content"] = clean
-                voice.speak(clean)
+                voice.speak_streamed(clean)
                 mem.add("assistant", clean)
         if nia_state:
             nia_state.after_turn()
@@ -204,7 +206,7 @@ def run_turn(history, mem, image=None, nia_state=None,
 
     for _ in range(MAX_TOOL_HOPS):
         resp = ollama.chat(model=work_model, messages=messages, tools=tools.TOOLS,
-                           keep_alive="5m", options={"num_ctx": CTX_WINDOW})
+                           keep_alive=KEEP_ALIVE, options={"num_ctx": CTX_WINDOW})
         msg = resp["message"]
         if msg.get("thinking"):
             with open("nia_thoughts.log", "a") as f:
@@ -243,7 +245,7 @@ def run_turn(history, mem, image=None, nia_state=None,
             {"role": "user", "content": "Give me your read on this."},
         ]
         nia_resp = ollama.chat(model=MODEL, messages=voice_msgs,
-                               keep_alive="5m", options={"num_ctx": CTX_WINDOW})
+                               keep_alive=KEEP_ALIVE, options={"num_ctx": CTX_WINDOW})
         final_msg = nia_resp["message"]
         history.append(final_msg)
         msg = final_msg
@@ -251,7 +253,7 @@ def run_turn(history, mem, image=None, nia_state=None,
     if msg and msg.get("content"):
         clean = _strip_trailers(msg["content"])
         msg["content"] = clean
-        voice.speak(clean)
+        voice.speak_streamed(clean)
         mem.add("assistant", clean)
     if nia_state:
         nia_state.after_turn()
@@ -302,7 +304,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
                 "extract every relevant field. Be thorough and literal."},
             {"role": "user", "content": user_msg["content"], "images": [b64]},
         ]
-        vision_resp = ollama.chat(model=VISION_MODEL, messages=vision_messages, keep_alive="5m")
+        vision_resp = ollama.chat(model=VISION_MODEL, messages=vision_messages, keep_alive=KEEP_ALIVE)
         description = vision_resp["message"].get("content", "").strip()
 
         if description:
@@ -317,7 +319,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
             clean_user.pop("images", None)
             nia_messages = sys_msgs + _drop_images(history[:-1]) + [clean_user]
             resp = ollama.chat(model=MODEL, messages=nia_messages, tools=tools.TOOLS,
-                               keep_alive="5m", options={"num_ctx": CTX_WINDOW})
+                               keep_alive=KEEP_ALIVE, options={"num_ctx": CTX_WINDOW})
             msg = resp["message"]
             if msg.get("thinking"):
                 with open("nia_thoughts.log", "a") as f:
@@ -328,7 +330,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
                 msg["content"] = clean
                 history[-1] = msg
                 yield from _fake_stream(clean)
-                voice.speak(clean)
+                voice.speak_streamed(clean)
                 mem.add("assistant", clean)
 
         if nia_state:
@@ -341,7 +343,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
         yield {"type": "tool", "name": "__code__"}
         full_text = ""
         stream = ollama.chat(model=CODE_MODEL, messages=messages,
-                             stream=True, keep_alive="5m",
+                             stream=True, keep_alive=KEEP_ALIVE,
                              options={"num_ctx": CTX_WINDOW})
         for chunk in stream:
             token = chunk["message"].get("content", "")
@@ -352,7 +354,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
             clean = _strip_trailers(full_text)
             mem.add("assistant", clean)
             history.append({"role": "assistant", "content": clean})
-            voice.speak(clean)
+            voice.speak_streamed(clean)
         if nia_state:
             nia_state.after_turn()
         yield _done()
@@ -367,7 +369,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
     for _ in range(MAX_TOOL_HOPS):
         with _log.Timer("model_call", model=work_model):
             resp = ollama.chat(model=work_model, messages=messages, tools=tools.TOOLS,
-                               keep_alive="5m", options={"num_ctx": CTX_WINDOW})
+                               keep_alive=KEEP_ALIVE, options={"num_ctx": CTX_WINDOW})
         msg = resp["message"]
         if msg.get("thinking"):
             with open("nia_thoughts.log", "a") as f:
@@ -410,7 +412,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
         ]
         with _log.Timer("nia_voice", model=MODEL):
             nia_resp = ollama.chat(model=MODEL, messages=voice_msgs,
-                                   keep_alive="5m", options={"num_ctx": CTX_WINDOW})
+                                   keep_alive=KEEP_ALIVE, options={"num_ctx": CTX_WINDOW})
         msg = nia_resp["message"]
         history.append(msg)
 
@@ -418,7 +420,7 @@ def run_turn_streaming(history, mem, image=None, nia_state=None,
         clean = _strip_trailers(msg["content"])
         msg["content"] = clean
         yield from _fake_stream(clean)
-        voice.speak(clean)
+        voice.speak_streamed(clean)
         mem.add("assistant", clean)
 
     if nia_state:
@@ -447,7 +449,7 @@ def _spontaneous_thought(history, mem, nia_state):
     messages = [{"role": "system", "content": system}] + _drop_images(history[-6:])
 
     try:
-        resp = ollama.chat(model=MODEL, messages=messages, keep_alive="5m",
+        resp = ollama.chat(model=MODEL, messages=messages, keep_alive=KEEP_ALIVE,
                            options={"num_ctx": CTX_WINDOW, "num_predict": 80})
         text = _strip_trailers(resp["message"].get("content", "").strip())
         if text and re.sub(r'[^\w]', '', text):
@@ -481,11 +483,28 @@ def start_spontaneous_thread(history, mem, nia_state,
     return t
 
 
+def _warmup_models():
+    """Pre-load models into Ollama memory at startup — eliminates first-reply cold lag."""
+    def _ping(model):
+        try:
+            ollama.chat(model=model,
+                        messages=[{"role": "user", "content": "hi"}],
+                        keep_alive=KEEP_ALIVE,
+                        options={"num_predict": 1, "num_ctx": 512})
+            print(f"  [warmup] {model} ready")
+        except Exception as e:
+            print(f"  [warmup] {model} unavailable: {e}")
+
+    for m in [MODEL, HERMES_MODEL, CODE_MODEL]:
+        threading.Thread(target=_ping, args=(m,), daemon=True).start()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--image", help="image path for Nia to examine this turn")
     args = ap.parse_args()
 
+    _warmup_models()
     mem = Memory()
     global _session_learnings
     _session_learnings = _learnings.load_recent_learnings()
