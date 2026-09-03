@@ -34,7 +34,7 @@ TIMEOUT = 10
 def _ddg_search(query: str, max_results: int = MAX_RESULTS) -> list[dict]:
     """DuckDuckGo instant answer API — no key required."""
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
         results = []
         with DDGS() as ddgs:
             for r in ddgs.text(query, max_results=max_results):
