@@ -106,7 +106,8 @@ DOMAIN_KEYWORDS = {
     ],
 }
 
-# Crisis: immediate danger, detention, imminent loss of home, medical emergency
+# Crisis: immediate PHYSICAL danger, active detention, imminent eviction/violence.
+# Financial hardship, unaffordable loans, and job loss are NOT crisis — cap at HIGH.
 CRISIS_PATTERNS = [
     r"\bice\b.{0,60}\b(came|come|took|raid|detain)",
     r"\b(took|detained|arrested)\s+(him|her|them|my)\b",
@@ -119,7 +120,14 @@ CRISIS_PATTERNS = [
     r"afraid for (my|our) (life|lives|safety)",
     r"\bsuicid",
     r"domestic violence",
+    r"physical(ly)? (attack|assault|abus|hurt|harm|threaten)",
 ]
+
+# In these domains, a model claiming "crisis" is almost certainly wrong —
+# financial stress reads as distressing but is never a physical emergency.
+_NON_CRISIS_DOMAINS = {
+    Domain.ECONOMIC, Domain.EDUCATION, Domain.EMPLOYMENT,
+}
 
 # High: time-sensitive, deadlines, retaliation, active loss
 HIGH_PATTERNS = [
@@ -177,7 +185,7 @@ def classify_fallback(user_input: str) -> dict:
         best_domain = Domain.DISCRIMINATION if discrimination_score else Domain.UNKNOWN
 
     urgency = Urgency.MEDIUM
-    if any(re.search(p, text) for p in CRISIS_PATTERNS):
+    if any(re.search(p, text) for p in CRISIS_PATTERNS) and best_domain not in _NON_CRISIS_DOMAINS:
         urgency = Urgency.CRISIS
     elif any(re.search(p, text) for p in HIGH_PATTERNS):
         urgency = Urgency.HIGH
@@ -262,6 +270,13 @@ def intake(user_input: str, model=None, soul: str = "") -> Situation:
 
     domain = _enum(Domain, data.get("domain"), Domain(fallback["domain"]))
     urgency = _enum(Urgency, data.get("urgency"), Urgency(fallback["urgency"]))
+
+    # Guard: financial/education/employment distress is never a physical emergency.
+    # If the model says CRISIS but the domain is non-crisis, cap at HIGH.
+    if urgency == Urgency.CRISIS and domain in _NON_CRISIS_DOMAINS:
+        text = re.sub(r"\s+", " ", user_input.lower())
+        if not any(re.search(p, text) for p in CRISIS_PATTERNS):
+            urgency = Urgency.HIGH
 
     valid_agents = {"keisha", "pamela", "mike", "david", "kelly"}
     squad = [a for a in data.get("squad_needed", []) if a in valid_agents]
