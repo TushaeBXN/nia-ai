@@ -1,0 +1,19 @@
+# Exclude training data, checkpoints, and dev files from the RunPod image
+training/
+training_data/
+data/
+checkpoints/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.git/
+.github/
+.env
+*.db
+*.log
+voices/
+models/
+tests/
+deploy/

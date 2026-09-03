@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment. Immigration resources are safety-critical — verify quarterly.",
+    "privacy": "Maximum privacy mode applies to this domain — see PRIVACY_POLICY.md"
+  },
+  "organizations": [
+    {
+      "name": "United We Dream — MigraWatch Hotline",
+      "domains": ["immigration"],
+      "phone": "1-844-363-1423",
+      "website": "https://unitedwedream.org",
+      "eligibility": "Anyone — report ICE activity or get rapid-response help",
+      "what_they_help_with": "24/7 hotline to report immigration enforcement, get connected to local rapid-response networks, and know-your-rights support."
+    },
+    {
+      "name": "RAICES",
+      "domains": ["immigration"],
+      "phone": "210-222-0964",
+      "website": "https://www.raicestexas.org",
+      "eligibility": "Immigrants and families, especially detained people; free and low-cost",
+      "what_they_help_with": "Free and low-cost legal services for immigrants — detention, asylum, family reunification, bond assistance."
+    },
+    {
+      "name": "National Immigration Law Center",
+      "domains": ["immigration", "employment", "economic"],
+      "phone": "213-639-3900",
+      "website": "https://www.nilc.org",
+      "eligibility": "Policy and know-your-rights hub; refers to direct services",
+      "what_they_help_with": "Know-your-rights materials in multiple languages; defends access to healthcare, benefits, and workplaces regardless of status."
+    },
+    {
+      "name": "Immigration Advocates Network — Legal Directory",
+      "domains": ["immigration"],
+      "phone": null,
+      "website": "https://www.immigrationlawhelp.org",
+      "eligibility": "Low-income immigrants",
+      "what_they_help_with": "Searchable directory of over 1,000 free and low-cost nonprofit immigration legal services providers, by state and county."
+    },
+    {
+      "name": "ICE Online Detainee Locator",
+      "domains": ["immigration"],
+      "phone": null,
+      "website": "https://locator.ice.gov",
+      "eligibility": "Anyone searching for a detained adult",
+      "what_they_help_with": "Find where someone is being held in ICE detention (needs their A-number or exact name and country of birth). Use with an attorney's guidance."
+    },
+    {
+      "name": "EOIR Immigration Court Information Line",
+      "domains": ["immigration"],
+      "phone": "1-800-898-7180",
+      "website": "https://acis.eoir.justice.gov",
+      "eligibility": "Anyone with a pending immigration court case (A-number required)",
+      "what_they_help_with": "Automated system for hearing dates and case status in immigration court, in English and Spanish."
+    }
+  ]
+}

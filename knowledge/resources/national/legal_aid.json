@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "ACLU (American Civil Liberties Union)",
+      "domains": ["discrimination", "education", "immigration", "housing", "employment"],
+      "phone": null,
+      "website": "https://www.aclu.org/affiliates",
+      "eligibility": "Anyone; intake goes through your state affiliate",
+      "what_they_help_with": "Civil rights and civil liberties cases — discrimination, free speech, immigrants' rights, voting rights. State affiliates take local cases and track state laws."
+    },
+    {
+      "name": "NAACP Legal Defense Fund (LDF)",
+      "domains": ["discrimination", "education", "employment", "economic"],
+      "phone": "212-965-2200",
+      "website": "https://www.naacpldf.org",
+      "eligibility": "Cases with broad civil rights impact, focused on racial justice",
+      "what_they_help_with": "Racial discrimination litigation — education, economic justice, criminal justice, political participation."
+    },
+    {
+      "name": "Lawyers' Committee for Civil Rights Under Law",
+      "domains": ["discrimination", "housing", "employment", "education"],
+      "phone": "202-662-8600",
+      "website": "https://www.lawyerscommittee.org",
+      "eligibility": "People facing racial discrimination; connects to pro bono attorneys",
+      "what_they_help_with": "Connecting discrimination victims with free private attorneys; voting rights; hate incident reporting."
+    },
+    {
+      "name": "Legal Services Corporation (Find Legal Aid)",
+      "domains": ["housing", "economic", "employment", "healthcare", "education"],
+      "phone": null,
+      "website": "https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help",
+      "eligibility": "Low-income (usually under 125% of the federal poverty line)",
+      "what_they_help_with": "Locator for the free civil legal aid office serving your county — evictions, benefits denials, family law, consumer problems."
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "211 (United Way)",
+      "domains": ["economic", "housing", "healthcare"],
+      "phone": "211",
+      "website": "https://www.211.org",
+      "eligibility": "Everyone; free and confidential, 24/7, multilingual",
+      "what_they_help_with": "The front door to local help: emergency rent and utility assistance, food, shelter, healthcare access, crisis support."
+    },
+    {
+      "name": "Benefits.gov",
+      "domains": ["economic", "healthcare"],
+      "phone": null,
+      "website": "https://www.benefits.gov",
+      "eligibility": "Everyone — screening tool shows what you may qualify for",
+      "what_they_help_with": "One questionnaire to find government benefits you may be owed: SNAP, Medicaid, TANF, WIC, LIHEAP, and more."
+    },
+    {
+      "name": "Operation HOPE",
+      "domains": ["economic"],
+      "phone": "1-888-388-4673",
+      "website": "https://operationhope.org",
+      "eligibility": "Free one-on-one financial coaching",
+      "what_they_help_with": "Credit and money management coaching, small business development, and homeownership preparation in underserved communities."
+    },
+    {
+      "name": "SBA — Minority Business Development",
+      "domains": ["economic"],
+      "phone": "1-800-827-5722",
+      "website": "https://www.sba.gov",
+      "eligibility": "Small business owners and founders",
+      "what_they_help_with": "Small business loans, 8(a) minority contracting certification, free local mentoring through SCORE and Small Business Development Centers."
+    },
+    {
+      "name": "Consumer Financial Protection Bureau",
+      "domains": ["economic", "housing", "discrimination"],
+      "phone": "1-855-411-2372",
+      "website": "https://www.consumerfinance.gov/complaint",
+      "eligibility": "Anyone with a problem with a bank, lender, or debt collector",
+      "what_they_help_with": "Complaints about lending discrimination, predatory loans, debt collection abuse — companies must respond, usually within 15 days."
+    }
+  ]
+}

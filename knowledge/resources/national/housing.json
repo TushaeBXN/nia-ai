@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "National Fair Housing Alliance",
+      "domains": ["housing", "discrimination"],
+      "phone": "202-898-1661",
+      "website": "https://nationalfairhousing.org",
+      "eligibility": "Anyone facing housing discrimination",
+      "what_they_help_with": "Network of local fair housing centers that investigate discrimination (including undercover testing) and help you file complaints free."
+    },
+    {
+      "name": "HUD Office of Fair Housing and Equal Opportunity",
+      "domains": ["housing", "discrimination"],
+      "phone": "1-800-669-9777",
+      "website": "https://www.hud.gov/fairhousing",
+      "eligibility": "Anyone — including non-citizens",
+      "what_they_help_with": "Federal housing discrimination complaints (1-year deadline). Investigates landlords, lenders, and agents at no cost to you."
+    },
+    {
+      "name": "National Low Income Housing Coalition",
+      "domains": ["housing", "economic"],
+      "phone": "202-662-1530",
+      "website": "https://nlihc.org",
+      "eligibility": "Anyone; strongest as a policy/resource hub",
+      "what_they_help_with": "State-by-state guides to rental assistance, eviction protections, and tenant rights; connects to state housing coalitions."
+    }
+  ]
+}

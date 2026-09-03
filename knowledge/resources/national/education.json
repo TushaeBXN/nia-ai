@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "U.S. Dept. of Education — Office for Civil Rights",
+      "domains": ["education", "discrimination"],
+      "phone": "1-800-421-3481",
+      "website": "https://ocrcas.ed.gov",
+      "eligibility": "Students/parents at any school receiving federal funds (180-day deadline)",
+      "what_they_help_with": "Federal complaints about race, sex, and disability discrimination in schools — discipline disparities, harassment, denied services. Free; no lawyer needed."
+    },
+    {
+      "name": "Education Law Center",
+      "domains": ["education"],
+      "phone": "973-624-1815",
+      "website": "https://edlawcenter.org",
+      "eligibility": "Students and parents, focus on under-resourced districts",
+      "what_they_help_with": "Students' educational rights — school funding equity, special education, discipline. Guides and legal advocacy."
+    },
+    {
+      "name": "UNCF (United Negro College Fund)",
+      "domains": ["education", "economic"],
+      "phone": "1-800-331-2244",
+      "website": "https://uncf.org",
+      "eligibility": "Black students pursuing college; scholarship criteria vary",
+      "what_they_help_with": "Scholarships, HBCU pathways, and college-access programs — routes to college that remain fully legal post-SFFA."
+    },
+    {
+      "name": "Learning for Justice (SPLC)",
+      "domains": ["education"],
+      "phone": null,
+      "website": "https://www.learningforjustice.org",
+      "eligibility": "Educators, parents, students",
+      "what_they_help_with": "Free inclusive-curriculum materials and guidance for educators and parents responding to curriculum censorship."
+    }
+  ]
+}

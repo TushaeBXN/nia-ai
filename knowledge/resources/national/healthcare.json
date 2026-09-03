@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "Black Mamas Matter Alliance",
+      "domains": ["healthcare"],
+      "phone": null,
+      "website": "https://blackmamasmatter.org",
+      "eligibility": "Anyone; focused on Black maternal health",
+      "what_they_help_with": "Black maternal health advocacy, rights education, and connections to birth workers, doulas, and community care networks."
+    },
+    {
+      "name": "National Maternal Mental Health Hotline",
+      "domains": ["healthcare"],
+      "phone": "1-833-852-6262",
+      "website": "https://mchb.hrsa.gov/national-maternal-mental-health-hotline",
+      "eligibility": "Anyone pregnant or within a year after birth; free, 24/7, English and Spanish",
+      "what_they_help_with": "Free confidential support before, during, and after pregnancy — counselors who take your concerns seriously."
+    },
+    {
+      "name": "HRSA Find a Health Center (FQHCs)",
+      "domains": ["healthcare", "economic"],
+      "phone": null,
+      "website": "https://findahealthcenter.hrsa.gov",
+      "eligibility": "Everyone — fees on a sliding scale; no one turned away for inability to pay; no immigration status requirement",
+      "what_they_help_with": "Locator for community health centers offering primary care, prenatal care, dental, and mental health regardless of insurance."
+    },
+    {
+      "name": "HHS Office for Civil Rights",
+      "domains": ["healthcare", "discrimination"],
+      "phone": "1-800-368-1019",
+      "website": "https://www.hhs.gov/ocr",
+      "eligibility": "Anyone discriminated against by a health provider or insurer that receives federal funds",
+      "what_they_help_with": "Federal complaints about discrimination in healthcare — race, disability, sex, language access. Free; no lawyer needed; 180-day deadline."
+    },
+    {
+      "name": "Patient Advocate Foundation",
+      "domains": ["healthcare", "economic"],
+      "phone": "1-800-532-5274",
+      "website": "https://www.patientadvocate.org",
+      "eligibility": "Patients with chronic, life-threatening, or debilitating conditions",
+      "what_they_help_with": "Free case managers who fight insurance denials, billing problems, and access-to-care issues on your behalf."
+    }
+  ]
+}

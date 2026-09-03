@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Nia AI — Justice mission system on AWS Lambda + Bedrock
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 120          # full pipeline (intake→triage→verdict) typically <30s
+    MemorySize: 512       # knowledge files + model client; bump to 1024 if cold starts are slow
+    Environment:
+      Variables:
+        NIA_MODEL_BACKEND: bedrock
+        NIA_BEDROCK_MODEL: meta.llama3-8b-instruct-v1:0
+        # REQUIRED: /var/task is read-only in Lambda; coordination writes go to /tmp
+        NIA_SHARED_DIR: /tmp/nia-shared
+        # Optional: lock CORS to your domain in production
+        # NIA_CORS_ORIGIN: https://nia.yourdomain.org
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+
+Resources:
+
+  NiaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "nia-ai-${Stage}"
+      Handler: lambda_handler.handler
+      CodeUri: ../          # repo root — bundles agents/, nia/, tools/, knowledge/
+      Role: !GetAtt NiaExecutionRole.Arn
+      Events:
+        ChatEndpoint:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NiaHttpApi
+            Path: /chat
+            Method: POST
+        HealthEndpoint:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NiaHttpApi
+            Path: /health
+            Method: GET
+
+  NiaHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+
+  NiaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "nia-ai-role-${Stage}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: NiaBedrockAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Llama 3 8B (default fast/cheap model)
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - arn:aws:bedrock:*::foundation-model/meta.llama3-8b-instruct-v1:0
+                  - arn:aws:bedrock:*::foundation-model/meta.llama3-70b-instruct-v1:0
+                  - arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0
+                  - arn:aws:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+
+Outputs:
+  NiaApiUrl:
+    Description: "Nia API endpoint — POST /chat with {\"message\": \"...\"}"
+    Value: !Sub "https://${NiaHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/chat"
+  NiaFunctionArn:
+    Value: !GetAtt NiaFunction.Arn

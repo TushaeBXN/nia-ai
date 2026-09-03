@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "scope": "national",
+    "last_verified": "2026-07-14",
+    "note": "Re-verify every phone number and URL before any public deployment."
+  },
+  "organizations": [
+    {
+      "name": "EEOC (Equal Employment Opportunity Commission)",
+      "domains": ["employment", "discrimination"],
+      "phone": "1-800-669-4000",
+      "website": "https://www.eeoc.gov",
+      "eligibility": "Workers at employers with 15+ employees (deadlines apply — usually 180 days)",
+      "what_they_help_with": "Federal discrimination charges: race, sex, religion, national origin, disability, age, pregnancy, and retaliation. Free to file; no lawyer needed."
+    },
+    {
+      "name": "U.S. Dept. of Labor — Wage and Hour Division",
+      "domains": ["employment", "economic"],
+      "phone": "1-866-487-9243",
+      "website": "https://www.dol.gov/agencies/whd",
+      "eligibility": "All workers — regardless of immigration status",
+      "what_they_help_with": "Unpaid wages, unpaid overtime, minimum wage violations. Free complaints; they can recover money owed to you."
+    },
+    {
+      "name": "A Better Balance — Free Legal Helpline",
+      "domains": ["employment", "healthcare"],
+      "phone": "1-833-633-3222",
+      "website": "https://www.abetterbalance.org",
+      "eligibility": "Any worker; free and confidential",
+      "what_they_help_with": "Free legal help on pregnancy accommodations at work, family/medical leave, sick time, and caregiver discrimination."
+    },
+    {
+      "name": "National Employment Law Project",
+      "domains": ["employment", "economic"],
+      "phone": null,
+      "website": "https://www.nelp.org",
+      "eligibility": "Resource and referral hub for workers",
+      "what_they_help_with": "Worker rights guides — wage theft, unemployment insurance, workplace safety — and referrals to worker centers."
+    }
+  ]
+}
