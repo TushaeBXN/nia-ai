@@ -241,6 +241,19 @@ def dispatch(situation) -> dict:
     text = situation.summary + " " + situation.raw_input
     findings = {}
 
+    # Prior sessions — what did Nia already work on with this person?
+    try:
+        from nia.memory import NiaMemory
+        mem = NiaMemory()
+        prior = mem.recall(text, n=3)
+        if prior:
+            findings["prior_sessions"] = (
+                "WHAT WE'VE WORKED ON BEFORE:\n"
+                + "\n".join(f"• {p[:200]}" for p in prior if p)
+            )
+    except Exception:
+        pass
+
     # Credit law
     if _match(text, CREDIT_KEYWORDS):
         result = _run_credit_law(situation)
@@ -292,6 +305,7 @@ def format_findings(findings: dict) -> str:
         return ""
     sections = []
     labels = {
+        "prior_sessions": "PRIOR SESSION CONTEXT",
         "credit_law": "CREDIT LAW ANALYSIS",
         "student_loans": "STUDENT LOAN GUIDANCE",
         "house_hack": "HOUSE HACK ANALYSIS",

@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from nia import privacy
+from nia.memory import NiaMemory
 from nia.model import ModelUnavailable, get_client
 from agents.nia.agent import NiaAgent
 from agents.nia.intake import Domain, Urgency
@@ -61,6 +62,11 @@ def main():
 
     model = build_model(args)
     agent = NiaAgent(model)
+    mem = NiaMemory()
+
+    # Show memory status on first run
+    if mem.available():
+        print("[Memory active — I'll remember what we work on across sessions.]\n")
 
     try:
         while True:
@@ -74,6 +80,12 @@ def main():
                 break
 
             situation = agent.intake(user_input)
+
+            # Inject prior session context before triage
+            if situation.domain != Domain.IMMIGRATION:  # privacy: never recall for immigration
+                warm_up = mem.warm_up()
+                if warm_up:
+                    situation.documented_facts.insert(0, warm_up)
 
             print(f"\n[Understood: {situation.domain.value} · "
                   f"urgency {situation.urgency.value}"
@@ -90,6 +102,10 @@ def main():
             responses = agent.triage(situation)
             final = agent.verdict(situation, responses)
             print("Nia:", final)
+
+            # Save this session to memory (skip immigration for privacy)
+            if situation.domain != Domain.IMMIGRATION:
+                mem.save_session(situation, final)
 
             print("\n[Want a summary you can hand to a lawyer or advocate? "
                   "Run: python -m tools.document_generator]")
