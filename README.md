@@ -14,6 +14,14 @@ Built by **Brian Thomas** at **Anthos Intelligence**.
 
 ---
 
+## THE MODEL
+
+Nia's fine-tuned model — trained on real community knowledge, legal rights, and historical context — is available on Hugging Face. If you want to run her locally or build on top of her, start there.
+
+> 🤗 **[TushaeBXN/Nia-Mistral-7B-V1 on Hugging Face](https://huggingface.co/TushaeBXN/Nia-Mistral-7B-V1)**
+
+---
+
 ## THE PROBLEM
 
 In the United States today:
@@ -92,6 +100,7 @@ python3 chat_nia.py        # or: ollama run nia
 | [Privacy Policy](PRIVACY_POLICY.md) | Plain-language privacy commitments. No exceptions. |
 | [Contributing](CONTRIBUTING.md) | How developers and advocates can help |
 | [Training Story](TRAINING.md) | How the Nia model was fine-tuned (AI-assisted, on cloud GPUs) |
+| [Nia Model on Hugging Face](https://huggingface.co/TushaeBXN/Nia-Mistral-7B-V1) | Download or build on the fine-tuned Nia-Mistral-7B-V1 model |
 
 ---
 
