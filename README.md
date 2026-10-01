@@ -6,7 +6,7 @@
 
 > **Nia** (Swahili) — *Purpose*
 
-Nia is an open-source AI assistant built to help underserved communities — Black Americans, Native Americans, poor working families, and the global African diaspora — navigate systems that were never designed with them in mind: **healthcare, housing, employment, education, and economic opportunity**.
+Nia is an open-source AI assistant built to help underserved communities — Black Americans, Native Americans, working-class families, and the global African diaspora — navigate systems that were never designed with them in mind: **healthcare, housing, employment, education, and economic opportunity**.
 
 She was built because access to information and the tools to act on it should not depend on your zip code, your income, or your skin color.
 

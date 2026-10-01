@@ -36,3 +36,7 @@ voices/*.onnx.json
 *.log
 wandb/
 runs/
+
+# Runtime state — never commit session/memory data
+nia_state.json
+nia_memory.db
