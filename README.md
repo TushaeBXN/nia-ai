@@ -12,6 +12,8 @@ She was built because access to information and the tools to act on it should no
 
 Built by **Brian Thomas** at **Anthos Intelligence**.
 
+> **⚠️ Important:** Nia is an AI assistant, not a lawyer, doctor, or licensed professional. AI models can and do make mistakes. Always verify important information — especially anything related to legal rights, healthcare, housing, or finances — with a qualified professional or official source before acting on it. Nia is a starting point, not a final answer.
+
 ---
 
 ## THE MODEL
